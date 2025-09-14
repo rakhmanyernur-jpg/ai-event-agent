@@ -10,7 +10,7 @@ type Message = {
 // Компонент для форматирования сообщений бота
 const FormattedMessage = ({ text }: { text: string }) => {
   const components = {
-    a: ({ href, children }: ComponentProps<"a">) => {
+    a: ({ href }: ComponentProps<"a">) => {
       if (!href)
         return (
           <span className="text-gray-500 italic">[Ссылка отсутствует]</span>
