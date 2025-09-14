@@ -78,7 +78,7 @@ function App() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:3001/ask", {
+      const res = await fetch("https://ebe596402a36.ngrok-free.app/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: input }),
