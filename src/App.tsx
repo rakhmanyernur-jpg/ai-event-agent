@@ -1,60 +1,78 @@
 import { useState, type KeyboardEvent, type ComponentProps } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import FlatCard from "./components/FlatCard";
 
 type Message = {
   role: "user" | "bot";
   text: string;
-  photos?: string[];
+  flats?: {
+    title?: string;
+    district?: string;
+    street?: string;
+    price?: string;
+    infrastructure?: string;
+    mortgageProgram?: string;
+    downPayment?: string;
+    contactLink?: string;
+    photos?: string[];
+  }[];
 };
 
-// Компонент для форматирования сообщений бота
-const FormattedMessage = ({ text, photos = [] }: { text: string; photos?: string[] }) => {
+const FormattedMessage = ({
+  text,
+  flats = [],
+}: {
+  text: string;
+  flats?: Message["flats"];
+}) => {
+  console.log("flats: ", flats)
   const components = {
-    a: ({ href }: ComponentProps<"a">) => {
-      if (!href) return (
-        <span className="text-gray-500 italic">[Ссылка отсутствует]</span>
-      );
-
-      return (
+    a: ({ href, children }: ComponentProps<"a">) =>
+      href ? (
         <a href={href} target="_blank" rel="noopener noreferrer">
           <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors mt-2 w-full">
-            Купить
+            {children || "Перейти"}
           </button>
         </a>
-      );
-    },
+      ) : (
+        <span className="text-gray-500 italic">[Ссылка отсутствует]</span>
+      ),
     p: ({ children }: ComponentProps<"p">) => (
       <div className="mb-2">{children}</div>
     ),
     ul: ({ children }: ComponentProps<"ul">) => (
-      <div className="flex gap-4 p-2 flex-col">{children}</div>
+      <ul className="list-disc list-inside space-y-1">{children}</ul>
     ),
     li: ({ children }: ComponentProps<"li">) => (
-      <div className="w-full flex-shrink-0">
-        {/* Фото с горизонтальной прокруткой */}
-        {photos.length > 0 && (
-          <div className="flex overflow-x-auto space-x-4 pb-2 snap-x snap-mandatory">
-            {photos.map((src, idx) => (
-              <img
-                key={idx}
-                src={src}
-                alt={`Фото ${idx + 1}`}
-                className="w-[50vw] h-60 object-cover rounded-lg flex-shrink-0 snap-center"
-              />
-            ))}
-          </div>
-        )}
-        {/* Подпись/текст */}
-        <div className="text-sm mt-2">{children}</div>
-      </div>
+      <li className="text-sm">{children}</li>
+    ),
+    table: ({ children }: ComponentProps<"table">) => (
+      <table className="border border-gray-300 text-sm w-full my-2">{children}</table>
+    ),
+    th: ({ children }: ComponentProps<"th">) => (
+      <th className="border border-gray-300 px-2 py-1 bg-gray-100">{children}</th>
+    ),
+    td: ({ children }: ComponentProps<"td">) => (
+      <td className="border border-gray-300 px-2 py-1">{children}</td>
     ),
   };
 
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-      {text}
-    </ReactMarkdown>
+    <div className="space-y-4">
+      {/* Общий текст (например: "Да, вот варианты") */}
+      {text && (
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+          {text}
+        </ReactMarkdown>
+      )}
+
+      {/* Каждый объект: текст → фотки */}
+      {flats.map((flat, idx) => {
+        console.log("flat: ", flat)
+        return <FlatCard key={idx} flat={flat} idx={idx} /> // 👈 Используем новый компонент
+      })}
+    </div >
   );
 };
 
@@ -73,8 +91,7 @@ function App() {
     setLoading(true);
 
     try {
-      // const res = await fetch("https://ebe596402a36.ngrok-free.app/ask", {
-      const res = await fetch("http://localhost:3001/ask", {
+      const res = await fetch("https://f352b1b4bcc6.ngrok-free.app/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: input }),
@@ -82,18 +99,17 @@ function App() {
 
       const data = await res.json();
 
+      // 👇 один объект вместо кучи сообщений
       const botMessage: Message = {
         role: "bot",
         text: data.answer || "Нет ответа",
+        flats: data.flats || [],
       };
 
       setMessages((prev) => [...prev, botMessage]);
     } catch (err) {
       console.error(err);
-      setMessages((prev) => [
-        ...prev,
-        { role: "bot", text: "Ошибка при запросе" },
-      ]);
+      setMessages((prev) => [...prev, { role: "bot", text: "Ошибка при запросе" }]);
     } finally {
       setLoading(false);
     }
@@ -137,12 +153,12 @@ function App() {
           <div
             key={i}
             className={`px-4 py-3 rounded-2xl shadow-sm w-fit max-w-[90%] text-sm leading-snug ${msg.role === "user"
-                ? "bg-blue-500 text-white ml-auto"
-                : "bg-white border border-gray-200 text-gray-800 mr-auto"
+              ? "bg-blue-500 text-white ml-auto"
+              : "bg-white border border-gray-200 text-gray-800 mr-auto"
               }`}
           >
             {msg.role === "bot" ? (
-              <FormattedMessage text={msg.text} photos={msg.photos} />
+              <FormattedMessage {...msg} />
             ) : (
               msg.text
             )}
